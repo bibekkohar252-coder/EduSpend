@@ -1,19 +1,19 @@
 <?php
+// includes/auth.php
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/Student.php';   // Include the Student class
 
 function isLoggedIn() {
     return isset($_SESSION['user_id']);
 }
 
 function login($email, $password) {
-    global $pdo;
-    $stmt = $pdo->prepare("SELECT StudentID, FullName, Email, PasswordHash FROM tblStudent WHERE Email = :email");
-    $stmt->execute([':email' => $email]);
-    $user = $stmt->fetch();
-    if ($user && password_verify($password, $user['PasswordHash'])) {
-        $_SESSION['user_id'] = $user['StudentID'];
-        $_SESSION['user_name'] = $user['FullName'];
-        $_SESSION['user_email'] = $user['Email'];
+    // Use the Student class to find by email
+    $student = Student::findByEmail($email);
+    if ($student && password_verify($password, $student->passwordHash)) {
+        $_SESSION['user_id'] = $student->studentId;
+        $_SESSION['user_name'] = $student->fullName;
+        $_SESSION['user_email'] = $student->email;
         return true;
     }
     return false;

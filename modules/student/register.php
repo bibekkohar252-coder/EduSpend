@@ -2,8 +2,8 @@
 $page_title = 'Register';
 require_once '../../includes/config.php';
 require_once '../../includes/auth.php';
+require_once '../../includes/Student.php';
 
-// If already logged in, go to dashboard
 if (isLoggedIn()) {
     header('Location: /EduSpend/index.php');
     exit;
@@ -19,7 +19,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirm = $_POST['confirm_password'];
     $dob = $_POST['dob'];
 
-    // Validation
     if (empty($fullname) || empty($email) || empty($password) || empty($dob)) {
         $error = 'All fields are required.';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -29,25 +28,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($password !== $confirm) {
         $error = 'Passwords do not match.';
     } else {
-        // Check if email already exists
-        $stmt = $pdo->prepare("SELECT StudentID FROM tblStudent WHERE Email = :email");
-        $stmt->execute([':email' => $email]);
-        if ($stmt->fetch()) {
-            $error = 'Email is already registered. Please login.';
-        } else {
-            // Hash password
-            $hashed = password_hash($password, PASSWORD_DEFAULT);
-            $sql = "INSERT INTO tblStudent (FullName, Email, PasswordHash, DateOfBirth)
-                    VALUES (:name, :email, :hash, :dob)";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                ':name' => $fullname,
-                ':email' => $email,
-                ':hash' => $hashed,
-                ':dob' => $dob
-            ]);
+        $student = new Student();
+        $student->fullName = $fullname;
+        $student->email = $email;
+        $student->passwordHash = password_hash($password, PASSWORD_DEFAULT);
+        $student->dateOfBirth = $dob;
+        $student->isActive = 1;
+        $student->registrationDate = date('Y-m-d H:i:s');
+
+        if ($student->register()) {
             $success = 'Registration successful! You can now login.';
-            // Clear form (optional)
+        } else {
+            $error = 'Email already registered. Please use a different email.';
         }
     }
 }

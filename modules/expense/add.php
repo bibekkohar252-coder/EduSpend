@@ -1,6 +1,7 @@
 <?php
 $page_title = 'Add Expense';
 require_once '../../includes/header.php';
+require_once '../../includes/Expense.php';
 
 $user_id = $_SESSION['user_id'];
 $categories = $pdo->query("SELECT CategoryID, CategoryName FROM tblCategory WHERE IsActive = 1")->fetchAll();
@@ -24,28 +25,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strtotime($expense_date) > strtotime(date('Y-m-d'))) {
         $error = 'Expense date cannot be in the future.';
     } else {
-        try {
-            $sql = "INSERT INTO tblExpense (Amount, CategoryID, ExpenseDate, IsRecurring, StudentID, Notes)
-                    VALUES (:amount, :cat, :date, :recur, :uid, :notes)";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                ':amount' => $amount,
-                ':cat' => $category_id,
-                ':date' => $expense_date,
-                ':recur' => $is_recurring,
-                ':uid' => $user_id,
-                ':notes' => $notes
-            ]);
+        $expense = new Expense();
+        $expense->amount = $amount;
+        $expense->categoryId = $category_id;
+        $expense->expenseDate = $expense_date;
+        $expense->isRecurring = $is_recurring;
+        $expense->studentId = $user_id;
+        $expense->notes = $notes;
+
+        if ($expense->save()) {
             $success = 'Expense added successfully!';
-        } catch (PDOException $e) {
-            $error = 'Database error: ' . $e->getMessage();
+        } else {
+            $error = 'Database error: could not save expense.';
         }
     }
 }
 ?>
 
 <h2>➕ Add New Expense</h2>
-
 <?php if ($error): ?>
     <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
 <?php elseif ($success): ?>
@@ -73,9 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="date" name="expense_date" value="<?= htmlspecialchars($_POST['expense_date'] ?? date('Y-m-d')) ?>" required>
     </div>
     <div class="form-group">
-        <label>
-            <input type="checkbox" name="is_recurring" <?= isset($_POST['is_recurring']) ? 'checked' : '' ?>> Recurring expense
-        </label>
+        <label><input type="checkbox" name="is_recurring" <?= isset($_POST['is_recurring']) ? 'checked' : '' ?>> Recurring expense</label>
     </div>
     <div class="form-group">
         <label>Notes (optional):</label>

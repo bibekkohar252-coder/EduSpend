@@ -1,14 +1,13 @@
 <?php
 $page_title = 'Edit Expense';
 require_once '../../includes/header.php';
+require_once '../../includes/Expense.php';
 
 $user_id = $_SESSION['user_id'];
 $expense_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-$stmt = $pdo->prepare("SELECT * FROM tblExpense WHERE ExpenseID = :id AND StudentID = :uid");
-$stmt->execute([':id' => $expense_id, ':uid' => $user_id]);
-$expense = $stmt->fetch();
-if (!$expense) {
+$expense = Expense::find($expense_id);
+if (!$expense || $expense->studentId != $user_id) {
     header('Location: view.php');
     exit;
 }
@@ -34,22 +33,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strtotime($expense_date) > strtotime(date('Y-m-d'))) {
         $error = 'Expense date cannot be in the future.';
     } else {
-        try {
-            $sql = "UPDATE tblExpense SET Amount = :amount, CategoryID = :cat, ExpenseDate = :date, IsRecurring = :recur, Notes = :notes
-                    WHERE ExpenseID = :id AND StudentID = :uid";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([
-                ':amount' => $amount,
-                ':cat' => $category_id,
-                ':date' => $expense_date,
-                ':recur' => $is_recurring,
-                ':notes' => $notes,
-                ':id' => $expense_id,
-                ':uid' => $user_id
-            ]);
+        $expense->amount = $amount;
+        $expense->categoryId = $category_id;
+        $expense->expenseDate = $expense_date;
+        $expense->isRecurring = $is_recurring;
+        $expense->notes = $notes;
+
+        if ($expense->save()) {
             $success = 'Expense updated successfully!';
-        } catch (PDOException $e) {
-            $error = 'Database error: ' . $e->getMessage();
+            // Refresh the object
+            $expense = Expense::find($expense_id);
+        } else {
+            $error = 'Database error: could not update expense.';
         }
     }
 }
@@ -65,13 +60,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <form method="post">
     <div class="form-group">
         <label>Amount (kr):</label>
-        <input type="number" step="0.01" name="amount" value="<?= htmlspecialchars($expense['Amount']) ?>" required>
+        <input type="number" step="0.01" name="amount" value="<?= htmlspecialchars($expense->amount) ?>" required>
     </div>
     <div class="form-group">
         <label>Category:</label>
         <select name="category_id" required>
             <?php foreach ($categories as $cat): ?>
-                <option value="<?= $cat['CategoryID'] ?>" <?= $expense['CategoryID'] == $cat['CategoryID'] ? 'selected' : '' ?>>
+                <option value="<?= $cat['CategoryID'] ?>" <?= $expense->categoryId == $cat['CategoryID'] ? 'selected' : '' ?>>
                     <?= htmlspecialchars($cat['CategoryName']) ?>
                 </option>
             <?php endforeach; ?>
@@ -79,14 +74,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div class="form-group">
         <label>Date:</label>
-        <input type="date" name="expense_date" value="<?= htmlspecialchars($expense['ExpenseDate']) ?>" required>
+        <input type="date" name="expense_date" value="<?= htmlspecialchars($expense->expenseDate) ?>" required>
     </div>
     <div class="form-group">
-        <label><input type="checkbox" name="is_recurring" <?= $expense['IsRecurring'] ? 'checked' : '' ?>> Recurring expense</label>
+        <label><input type="checkbox" name="is_recurring" <?= $expense->isRecurring ? 'checked' : '' ?>> Recurring expense</label>
     </div>
     <div class="form-group">
         <label>Notes:</label>
-        <textarea name="notes" rows="3"><?= htmlspecialchars($expense['Notes']) ?></textarea>
+        <textarea name="notes" rows="3"><?= htmlspecialchars($expense->notes) ?></textarea>
     </div>
     <button type="submit" class="btn">Update Expense</button>
     <a href="view.php" class="btn btn-secondary">Cancel</a>

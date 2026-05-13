@@ -1,25 +1,63 @@
-// Live filter for tables (optional)
+// main.js
 document.addEventListener('DOMContentLoaded', function() {
-    // Delete confirmation for all delete links
-    const deleteLinks = document.querySelectorAll('.delete-link');
-    deleteLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            if (!confirm('Are you sure? This action cannot be undone.')) {
-                e.preventDefault();
-            }
-        });
-    });
+    const modal = document.getElementById('confirmModal');
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+    const cancelBtn = document.getElementById('modalCancelBtn');
+    let currentDeleteUrl = null;
 
-    // Live search (if search input exists)
-    const searchInput = document.querySelector('#live-search');
-    if (searchInput) {
-        searchInput.addEventListener('keyup', function() {
-            const filter = this.value.toLowerCase();
-            const rows = document.querySelectorAll('table tbody tr');
-            rows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                row.style.display = text.includes(filter) ? '' : 'none';
+    // Function to show modal (centered)
+    function showModal() {
+        if (modal) {
+            modal.style.display = 'flex';
+        }
+    }
+
+    function hideModal() {
+        if (modal) {
+            modal.style.display = 'none';
+            currentDeleteUrl = null;
+        }
+    }
+
+    // Attach click handlers to all delete links
+    function initDeleteLinks() {
+        const deleteLinks = document.querySelectorAll('.delete-link');
+        deleteLinks.forEach(link => {
+            // Remove any existing inline onclick or old events
+            link.removeAttribute('onclick');
+            // Replace with new click handler
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                currentDeleteUrl = this.href;
+                showModal();
             });
         });
     }
+
+    // Confirm button clicks
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', function() {
+            if (currentDeleteUrl) {
+                window.location.href = currentDeleteUrl;
+            }
+            hideModal();
+        });
+    }
+
+    // Cancel button
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', hideModal);
+    }
+
+    // Clicking outside the modal (on the overlay) closes it
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                hideModal();
+            }
+        });
+    }
+
+    initDeleteLinks();
 });
