@@ -38,7 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($income->save()) {
             $success = 'Income updated successfully!';
-            // Reload the object to reflect changes (optional)
             $income = Income::find($id);
         } else {
             $error = 'Database error: could not update income.';
@@ -46,32 +45,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<h2>✏️ Edit Income</h2>
-<?php if ($error): ?><div class="alert alert-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-<?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?> <a href="list.php">Back to list</a></div><?php endif; ?>
 
-<form method="post">
+<h2>✏️ Edit Income</h2>
+
+<?php if ($error): ?>
+    <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+<?php elseif ($success): ?>
+    <div class="alert alert-success"><?= htmlspecialchars($success) ?> <a href="list.php">Back to list</a></div>
+<?php endif; ?>
+
+<form method="post" class="modern-form">
     <div class="form-group">
-        <label>Amount (kr):</label>
+        <label>Amount (kr) *</label>
         <input type="number" step="0.01" name="amount" value="<?= $income->amount ?>" required>
     </div>
     <div class="form-group">
-        <label>Source:</label>
+        <label>Source *</label>
         <input type="text" name="source" value="<?= htmlspecialchars($income->source) ?>" required>
     </div>
     <div class="form-group">
-        <label>Date:</label>
+        <label>Date *</label>
         <input type="date" name="income_date" value="<?= $income->incomeDate ?>" required>
     </div>
-    <div class="form-group">
-        <label><input type="checkbox" name="is_scholarship" <?= $income->isScholarship ? 'checked' : '' ?>> Scholarship income</label>
+    <div class="form-group checkbox-group">
+        <label class="checkbox-inline">
+            <input type="checkbox" name="is_scholarship" <?= $income->isScholarship ? 'checked' : '' ?>>
+            <span>Scholarship income</span>
+        </label>
     </div>
     <div class="form-group">
-        <label>Notes:</label>
+        <label>Notes</label>
         <textarea name="notes" rows="2"><?= htmlspecialchars($income->notes) ?></textarea>
     </div>
-    <button type="submit" class="btn">Update Income</button>
-    <a href="list.php" class="btn btn-secondary">Cancel</a>
+    <div class="form-actions">
+        <button type="submit" class="btn">💾 Update Income</button>
+        <a href="list.php" class="btn btn-secondary">Cancel</a>
+    </div>
 </form>
 
 <?php require_once '../../includes/footer.php'; ?>

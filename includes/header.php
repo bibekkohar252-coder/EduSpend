@@ -18,7 +18,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
         <div class="logo">
             <img src="/EduSpend/assets/images/logo.jpeg" alt="EduSpend Logo" class="logo-img">
             <div class="logo-text">
-                <span class="logo-main">eduspend</span>
+                <span class="logo-main">EduSpend</span>
                 <span class="logo-tagline">TRACK·PLAN·SAVE·GROW</span>
             </div>
         </div>

@@ -43,19 +43,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <h2>➕ Add New Expense</h2>
+
 <?php if ($error): ?>
     <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
 <?php elseif ($success): ?>
     <div class="alert alert-success"><?= htmlspecialchars($success) ?> <a href="view.php">View all expenses</a></div>
 <?php endif; ?>
 
-<form method="post">
+<form method="post" class="modern-form">
     <div class="form-group">
-        <label>Amount (kr):</label>
+        <label>Amount (kr) *</label>
         <input type="number" step="0.01" name="amount" value="<?= htmlspecialchars($_POST['amount'] ?? '') ?>" required>
     </div>
     <div class="form-group">
-        <label>Category:</label>
+        <label>Category *</label>
         <select name="category_id" required>
             <option value="">-- Select --</option>
             <?php foreach ($categories as $cat): ?>
@@ -66,18 +67,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </select>
     </div>
     <div class="form-group">
-        <label>Date:</label>
+        <label>Date *</label>
         <input type="date" name="expense_date" value="<?= htmlspecialchars($_POST['expense_date'] ?? date('Y-m-d')) ?>" required>
     </div>
-    <div class="form-group">
-        <label><input type="checkbox" name="is_recurring" <?= isset($_POST['is_recurring']) ? 'checked' : '' ?>> Recurring expense</label>
+    <div class="form-group checkbox-group">
+        <label class="checkbox-inline">
+            <input type="checkbox" name="is_recurring" <?= isset($_POST['is_recurring']) ? 'checked' : '' ?>>
+            <span>Recurring expense</span>
+        </label>
     </div>
     <div class="form-group">
-        <label>Notes (optional):</label>
+        <label>Notes (optional)</label>
         <textarea name="notes" rows="3"><?= htmlspecialchars($_POST['notes'] ?? '') ?></textarea>
     </div>
-    <button type="submit" class="btn">Save Expense</button>
-    <a href="view.php" class="btn btn-secondary">Cancel</a>
+    <div class="form-actions">
+        <button type="submit" class="btn">💾 Save Expense</button>
+        <a href="view.php" class="btn btn-secondary">Cancel</a>
+    </div>
 </form>
 
 <?php require_once '../../includes/footer.php'; ?>

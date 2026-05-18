@@ -12,7 +12,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $is_active = isset($_POST['is_active']) ? 1 : 0;
     $desc = trim($_POST['description']);
 
-    // Validation
     if (empty($name)) {
         $error = 'Category name is required.';
     } elseif (!is_numeric($budget) || $budget < 0) {
@@ -33,28 +32,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<h2>➕ Add Category</h2>
-<?php if ($error): ?><div class="alert alert-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-<?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?> <a href="list.php">View all</a></div><?php endif; ?>
 
-<form method="post">
+<h2>➕ Add New Category</h2>
+
+<?php if ($error): ?>
+    <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+<?php endif; ?>
+<?php if ($success): ?>
+    <div class="alert alert-success"><?= htmlspecialchars($success) ?> <a href="list.php">→ View all categories</a></div>
+<?php endif; ?>
+
+<form method="post" class="modern-form">
     <div class="form-group">
-        <label>Category Name:</label>
-        <input type="text" name="name" required>
+        <label>Category Name *</label>
+        <input type="text" name="name" required placeholder="e.g., Food, Transport, Entertainment">
     </div>
     <div class="form-group">
-        <label>Budget Limit (kr):</label>
-        <input type="number" step="0.01" name="budget_limit" value="0">
+        <label>Budget Limit (kr)</label>
+        <input type="number" step="0.01" name="budget_limit" value="0" placeholder="0.00">
+    </div>
+    <div class="form-group checkbox-group">
+        <label class="checkbox-inline">
+            <input type="checkbox" name="is_active" checked>
+            <span>Active</span>
+        </label>
     </div>
     <div class="form-group">
-        <label><input type="checkbox" name="is_active" checked> Active</label>
+        <label>Description (optional)</label>
+        <textarea name="description" rows="3" placeholder="Any notes about this category..."></textarea>
     </div>
-    <div class="form-group">
-        <label>Description:</label>
-        <textarea name="description" rows="2"></textarea>
+    <div class="form-actions">
+        <button type="submit" class="btn">💾 Save Category</button>
+        <a href="list.php" class="btn btn-secondary">Cancel</a>
     </div>
-    <button type="submit" class="btn">Save Category</button>
-    <a href="list.php" class="btn btn-secondary">Cancel</a>
 </form>
 
 <?php require_once '../../includes/footer.php'; ?>

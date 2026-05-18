@@ -38,7 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($goal->save()) {
             $success = 'Savings goal updated successfully!';
-            // Reload the object to reflect changes (optional)
             $goal = SavingsGoal::find($id);
         } else {
             $error = 'Database error: could not update goal.';
@@ -46,32 +45,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<h2>✏️ Edit Savings Goal</h2>
-<?php if ($error): ?><div class="alert alert-error"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-<?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?> <a href="list.php">Back to list</a></div><?php endif; ?>
 
-<form method="post">
+<h2>✏️ Edit Savings Goal</h2>
+
+<?php if ($error): ?>
+    <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+<?php elseif ($success): ?>
+    <div class="alert alert-success"><?= htmlspecialchars($success) ?> <a href="list.php">Back to list</a></div>
+<?php endif; ?>
+
+<form method="post" class="modern-form">
     <div class="form-group">
-        <label>Goal Name:</label>
+        <label>Goal Name *</label>
         <input type="text" name="goal_name" value="<?= htmlspecialchars($goal->goalName) ?>" required>
     </div>
     <div class="form-group">
-        <label>Target Amount (kr):</label>
+        <label>Target Amount (kr) *</label>
         <input type="number" step="0.01" name="target_amount" value="<?= $goal->targetAmount ?>" required>
     </div>
     <div class="form-group">
-        <label>Current Amount (kr):</label>
+        <label>Current Amount (kr)</label>
         <input type="number" step="0.01" name="current_amount" value="<?= $goal->currentAmount ?>">
     </div>
     <div class="form-group">
-        <label>Target Date:</label>
+        <label>Target Date *</label>
         <input type="date" name="target_date" value="<?= $goal->targetDate ?>" required>
     </div>
-    <div class="form-group">
-        <label><input type="checkbox" name="is_completed" <?= $goal->isCompleted ? 'checked' : '' ?>> Mark as completed</label>
+    <div class="form-group checkbox-group">
+        <label class="checkbox-inline">
+            <input type="checkbox" name="is_completed" <?= $goal->isCompleted ? 'checked' : '' ?>>
+            <span>Mark as completed</span>
+        </label>
     </div>
-    <button type="submit" class="btn">Update Goal</button>
-    <a href="list.php" class="btn btn-secondary">Cancel</a>
+    <div class="form-actions">
+        <button type="submit" class="btn">💾 Update Goal</button>
+        <a href="list.php" class="btn btn-secondary">Cancel</a>
+    </div>
 </form>
 
 <?php require_once '../../includes/footer.php'; ?>

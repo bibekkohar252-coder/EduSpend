@@ -41,7 +41,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($expense->save()) {
             $success = 'Expense updated successfully!';
-            // Refresh the object
             $expense = Expense::find($expense_id);
         } else {
             $error = 'Database error: could not update expense.';
@@ -51,19 +50,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 
 <h2>✏️ Edit Expense</h2>
+
 <?php if ($error): ?>
     <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
 <?php elseif ($success): ?>
     <div class="alert alert-success"><?= htmlspecialchars($success) ?> <a href="view.php">Back to list</a></div>
 <?php endif; ?>
 
-<form method="post">
+<form method="post" class="modern-form">
     <div class="form-group">
-        <label>Amount (kr):</label>
+        <label>Amount (kr) *</label>
         <input type="number" step="0.01" name="amount" value="<?= htmlspecialchars($expense->amount) ?>" required>
     </div>
     <div class="form-group">
-        <label>Category:</label>
+        <label>Category *</label>
         <select name="category_id" required>
             <?php foreach ($categories as $cat): ?>
                 <option value="<?= $cat['CategoryID'] ?>" <?= $expense->categoryId == $cat['CategoryID'] ? 'selected' : '' ?>>
@@ -73,18 +73,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </select>
     </div>
     <div class="form-group">
-        <label>Date:</label>
+        <label>Date *</label>
         <input type="date" name="expense_date" value="<?= htmlspecialchars($expense->expenseDate) ?>" required>
     </div>
-    <div class="form-group">
-        <label><input type="checkbox" name="is_recurring" <?= $expense->isRecurring ? 'checked' : '' ?>> Recurring expense</label>
+    <div class="form-group checkbox-group">
+        <label class="checkbox-inline">
+            <input type="checkbox" name="is_recurring" <?= $expense->isRecurring ? 'checked' : '' ?>>
+            <span>Recurring expense</span>
+        </label>
     </div>
     <div class="form-group">
-        <label>Notes:</label>
+        <label>Notes</label>
         <textarea name="notes" rows="3"><?= htmlspecialchars($expense->notes) ?></textarea>
     </div>
-    <button type="submit" class="btn">Update Expense</button>
-    <a href="view.php" class="btn btn-secondary">Cancel</a>
+    <div class="form-actions">
+        <button type="submit" class="btn">💾 Update Expense</button>
+        <a href="view.php" class="btn btn-secondary">Cancel</a>
+    </div>
 </form>
 
 <?php require_once '../../includes/footer.php'; ?>

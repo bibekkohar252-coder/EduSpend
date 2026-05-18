@@ -14,6 +14,7 @@ function login($email, $password) {
         $_SESSION['user_id'] = $student->studentId;
         $_SESSION['user_name'] = $student->fullName;
         $_SESSION['user_email'] = $student->email;
+        session_regenerate_id(true);   // ✅ prevents session fixation
         return true;
     }
     return false;
