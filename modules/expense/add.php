@@ -2,11 +2,13 @@
 $page_title = 'Add Expense';
 require_once '../../includes/header.php';
 require_once '../../includes/Expense.php';
+require_once '../../includes/Category.php';
 
 $user_id = $_SESSION['user_id'];
-$categories = $pdo->query("SELECT CategoryID, CategoryName FROM tblCategory WHERE IsActive = 1")->fetchAll();
+$categories = $pdo->query("SELECT CategoryID, CategoryName, BudgetLimit FROM tblCategory WHERE IsActive = 1")->fetchAll();
 
 $error = '';
+$warning = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -16,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $is_recurring = isset($_POST['is_recurring']) ? 1 : 0;
     $notes = trim($_POST['notes']);
 
+    // Validation
     if (!is_numeric($amount) || $amount <= 0) {
         $error = 'Amount must be a positive number.';
     } elseif (empty($category_id)) {
@@ -25,6 +28,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strtotime($expense_date) > strtotime(date('Y-m-d'))) {
         $error = 'Expense date cannot be in the future.';
     } else {
+        // --- Budget Alert Logic ---
+        $month = date('Y-m', strtotime($expense_date));
+        $currentSpent = Category::getMonthlySpent($category_id, $user_id, $month);
+        $category = Category::find($category_id);
+        $budgetLimit = $category ? $category->budgetLimit : 0;
+        $newTotal = $currentSpent + $amount;
+        if ($budgetLimit > 0 && $newTotal > $budgetLimit) {
+            $warning = "⚠️ Warning: This expense will exceed the monthly budget for this category ("
+                     . number_format($currentSpent, 2) . " kr spent, budget "
+                     . number_format($budgetLimit, 2) . " kr).";
+        }
+        // --------------------------
+
         $expense = new Expense();
         $expense->amount = $amount;
         $expense->categoryId = $category_id;
@@ -49,6 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php elseif ($success): ?>
     <div class="alert alert-success"><?= htmlspecialchars($success) ?> <a href="view.php">View all expenses</a></div>
 <?php endif; ?>
+<?php if ($warning): ?>
+    <div class="alert alert-warning" style="background: #fef3c7; color: #92400e; border-left: 5px solid #f59e0b;"><?= htmlspecialchars($warning) ?></div>
+<?php endif; ?>
 
 <form method="post" class="modern-form">
     <div class="form-group">
@@ -61,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <option value="">-- Select --</option>
             <?php foreach ($categories as $cat): ?>
                 <option value="<?= $cat['CategoryID'] ?>" <?= (isset($_POST['category_id']) && $_POST['category_id'] == $cat['CategoryID']) ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($cat['CategoryName']) ?>
+                    <?= htmlspecialchars($cat['CategoryName']) ?> (Budget: <?= number_format($cat['BudgetLimit'], 2) ?> kr)
                 </option>
             <?php endforeach; ?>
         </select>

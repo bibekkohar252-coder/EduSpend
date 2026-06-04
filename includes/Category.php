@@ -88,5 +88,13 @@ class Category {
         }
         return $categories;
     }
+    // Get total amount spent for a specific category in a given month (YYYY-MM)
+public static function getMonthlySpent($categoryId, $studentId, $month)
+{
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT COALESCE(SUM(Amount), 0) FROM tblExpense WHERE CategoryID = ? AND StudentID = ? AND DATE_FORMAT(ExpenseDate, '%Y-%m') = ?");
+    $stmt->execute([$categoryId, $studentId, $month]);
+    return (float)$stmt->fetchColumn();
+}   
 }
 ?>

@@ -5,39 +5,33 @@ require_once '../../includes/Expense.php';
 
 $user_id = $_SESSION['user_id'];
 
-// Month filter
 $month = isset($_GET['month']) ? $_GET['month'] : date('Y-m');
 $category_filter = $_GET['category'] ?? '';
 $search = $_GET['search'] ?? '';
 
-// Fetch expenses
-$expenses = Expense::all($user_id, $category_filter, $search);
+$expenses = Expense::all($user_id, $category_filter, $search, false);
 
-// Calculate total for selected month
-$total = $pdo->prepare("SELECT SUM(Amount) FROM tblExpense WHERE StudentID = ? AND DATE_FORMAT(ExpenseDate, '%Y-%m') = ?");
+$total = $pdo->prepare("SELECT SUM(Amount) FROM tblExpense WHERE StudentID = ? AND DATE_FORMAT(ExpenseDate, '%Y-%m') = ? AND deleted_at IS NULL");
 $total->execute([$user_id, $month]);
 $totalAmount = $total->fetchColumn() ?? 0;
 
-// Get category totals for the small pie chart (same month)
 $catTotals = $pdo->prepare("
     SELECT c.CategoryName, SUM(e.Amount) as total
     FROM tblExpense e
     JOIN tblCategory c ON e.CategoryID = c.CategoryID
-    WHERE e.StudentID = ? AND DATE_FORMAT(e.ExpenseDate, '%Y-%m') = ?
+    WHERE e.StudentID = ? AND DATE_FORMAT(e.ExpenseDate, '%Y-%m') = ? AND e.deleted_at IS NULL
     GROUP BY e.CategoryID
 ");
 $catTotals->execute([$user_id, $month]);
 $categoryData = $catTotals->fetchAll();
-$labels = [];
-$values = [];
+$labels = []; $values = [];
 foreach ($categoryData as $row) {
     $labels[] = $row['CategoryName'];
     $values[] = $row['total'];
 }
 
-// Export CSV
 if (isset($_GET['export']) && $_GET['export'] == 1) {
-    $expensesForExport = Expense::all($user_id, $category_filter, $search);
+    $expensesForExport = Expense::all($user_id, $category_filter, $search, false);
     header('Content-Type: text/csv');
     header('Content-Disposition: attachment; filename="expenses_' . date('Y-m-d') . '.csv"');
     $out = fopen('php://output', 'w');
@@ -154,7 +148,6 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
         color: #1e293b;
     }
 
-    /* Cool page header */
     .page-header {
         display: flex;
         justify-content: space-between;
@@ -177,23 +170,13 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
     }
 
     @media (max-width: 768px) {
-        .expense-grid {
-            grid-template-columns: 1fr;
-        }
-        .stats-row {
-            flex-direction: column;
-        }
-        .pie-card {
-            min-width: auto;
-        }
-        .page-header {
-            flex-direction: column;
-            align-items: flex-start;
-        }
+        .expense-grid { grid-template-columns: 1fr; }
+        .stats-row { flex-direction: column; }
+        .pie-card { min-width: auto; }
+        .page-header { flex-direction: column; align-items: flex-start; }
     }
 </style>
 
-<!-- ===== EXPENSES PAGE HEADER ===== -->
 <div class="page-header">
     <div>
         <h2>💸 Expenses</h2>
@@ -202,7 +185,6 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
     <a href="add.php" class="btn">+ Add New Expense</a>
 </div>
 
-<!-- Filter bar -->
 <div class="filter-bar">
     <form method="get" style="display:flex; gap:1rem; flex-wrap:wrap; width:100%; align-items:flex-end;">
         <div class="form-group" style="margin-bottom:0;">
@@ -228,13 +210,13 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
         </div>
         <button type="submit" class="btn">Filter</button>
         <a href="?export=1&<?= http_build_query($_GET) ?>" class="btn btn-secondary">📥 Export CSV</a>
+        <a href="trash.php" class="btn btn-secondary">🗑️ Trash</a>
         <?php if ($category_filter || $search || $month != date('Y-m')): ?>
             <a href="view.php" class="btn btn-secondary">Clear</a>
         <?php endif; ?>
     </form>
 </div>
 
-<!-- Statistics row: summary card + small pie chart -->
 <div class="stats-row">
     <div class="summary-card">
         <h3>Total for <?= htmlspecialchars(date('F Y', strtotime($month . '-01'))) ?></h3>
@@ -247,7 +229,6 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
     <?php endif; ?>
 </div>
 
-<!-- Expense cards grid -->
 <?php if (empty($expenses)): ?>
     <div class="alert alert-info">✨ No expenses found. <a href="add.php">Add your first expense</a></div>
 <?php else: ?>
@@ -276,7 +257,6 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
     </div>
 <?php endif; ?>
 
-<!-- Chart.js library -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <?php if (!empty($labels)): ?>
 <script>
@@ -285,19 +265,9 @@ if (isset($_GET['export']) && $_GET['export'] == 1) {
         type: 'pie',
         data: {
             labels: <?= json_encode($labels) ?>,
-            datasets: [{
-                data: <?= json_encode($values) ?>,
-                backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec489a', '#06b6d4', '#f97316', '#14b8a6', '#6366f1']
-            }]
+            datasets: [{ data: <?= json_encode($values) ?>, backgroundColor: ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec489a', '#06b6d4', '#f97316', '#14b8a6', '#6366f1'] }]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
-                tooltip: { callbacks: { label: (ctx) => `${ctx.label}: ${ctx.parsed.toFixed(2)} kr` } }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } } }
     });
 </script>
 <?php endif; ?>

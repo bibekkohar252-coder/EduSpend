@@ -2,6 +2,7 @@
 $page_title = 'Edit Expense';
 require_once '../../includes/header.php';
 require_once '../../includes/Expense.php';
+require_once '../../includes/Category.php';
 
 $user_id = $_SESSION['user_id'];
 $expense_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -12,9 +13,10 @@ if (!$expense || $expense->studentId != $user_id) {
     exit;
 }
 
-$categories = $pdo->query("SELECT CategoryID, CategoryName FROM tblCategory WHERE IsActive = 1")->fetchAll();
+$categories = $pdo->query("SELECT CategoryID, CategoryName, BudgetLimit FROM tblCategory WHERE IsActive = 1")->fetchAll();
 
 $error = '';
+$warning = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -33,6 +35,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (strtotime($expense_date) > strtotime(date('Y-m-d'))) {
         $error = 'Expense date cannot be in the future.';
     } else {
+        // --- Budget Alert Logic (excluding the old expense amount) ---
+        $month = date('Y-m', strtotime($expense_date));
+        $currentSpent = Category::getMonthlySpent($category_id, $user_id, $month);
+        // Remove the original expense amount if it belongs to the same category and month
+        if ($expense->categoryId == $category_id && date('Y-m', strtotime($expense->expenseDate)) == $month) {
+            $currentSpent -= $expense->amount;
+        }
+        $category = Category::find($category_id);
+        $budgetLimit = $category ? $category->budgetLimit : 0;
+        $newTotal = $currentSpent + $amount;
+        if ($budgetLimit > 0 && $newTotal > $budgetLimit) {
+            $warning = "⚠️ Warning: This expense will exceed the monthly budget for this category ("
+                     . number_format($currentSpent, 2) . " kr spent (excluding this edit), budget "
+                     . number_format($budgetLimit, 2) . " kr).";
+        }
+        // --------------------------
+
         $expense->amount = $amount;
         $expense->categoryId = $category_id;
         $expense->expenseDate = $expense_date;
@@ -41,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($expense->save()) {
             $success = 'Expense updated successfully!';
-            $expense = Expense::find($expense_id);
+            $expense = Expense::find($expense_id); // refresh
         } else {
             $error = 'Database error: could not update expense.';
         }
@@ -56,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <?php elseif ($success): ?>
     <div class="alert alert-success"><?= htmlspecialchars($success) ?> <a href="view.php">Back to list</a></div>
 <?php endif; ?>
+<?php if ($warning): ?>
+    <div class="alert alert-warning" style="background: #fef3c7; color: #92400e; border-left: 5px solid #f59e0b;"><?= htmlspecialchars($warning) ?></div>
+<?php endif; ?>
 
 <form method="post" class="modern-form">
     <div class="form-group">
@@ -67,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <select name="category_id" required>
             <?php foreach ($categories as $cat): ?>
                 <option value="<?= $cat['CategoryID'] ?>" <?= $expense->categoryId == $cat['CategoryID'] ? 'selected' : '' ?>>
-                    <?= htmlspecialchars($cat['CategoryName']) ?>
+                    <?= htmlspecialchars($cat['CategoryName']) ?> (Budget: <?= number_format($cat['BudgetLimit'], 2) ?> kr)
                 </option>
             <?php endforeach; ?>
         </select>

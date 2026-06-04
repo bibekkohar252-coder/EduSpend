@@ -1,63 +1,73 @@
-// main.js
+// main.js – final working version for all actions
 document.addEventListener('DOMContentLoaded', function() {
     const modal = document.getElementById('confirmModal');
     const confirmBtn = document.getElementById('modalConfirmBtn');
     const cancelBtn = document.getElementById('modalCancelBtn');
-    let currentDeleteUrl = null;
+    let currentUrl = null;
 
-    // Function to show modal (centered)
     function showModal() {
-        if (modal) {
-            modal.style.display = 'flex';
-        }
+        if (modal) modal.style.display = 'flex';
     }
 
     function hideModal() {
-        if (modal) {
-            modal.style.display = 'none';
-            currentDeleteUrl = null;
-        }
+        if (modal) modal.style.display = 'none';
+        currentUrl = null;
+        // Reset modal text and button to defaults
+        const modalBody = document.querySelector('#confirmModal .modal-body p');
+        if (modalBody) modalBody.innerText = 'Are you sure? This action cannot be undone.';
+        confirmBtn.innerText = 'Delete';
+        confirmBtn.style.background = '';
     }
 
-    // Attach click handlers to all delete links
-    function initDeleteLinks() {
-        const deleteLinks = document.querySelectorAll('.delete-link');
-        deleteLinks.forEach(link => {
-            // Remove any existing inline onclick or old events
-            link.removeAttribute('onclick');
-            // Replace with new click handler
+    function setupAction(selector, actionText, confirmText, buttonColor) {
+        document.querySelectorAll(selector).forEach(link => {
             link.addEventListener('click', function(e) {
                 e.preventDefault();
-                e.stopPropagation();
-                currentDeleteUrl = this.href;
+                currentUrl = this.href;
+                const modalBody = document.querySelector('#confirmModal .modal-body p');
+                if (modalBody) modalBody.innerText = actionText;
+                confirmBtn.innerText = confirmText;
+                confirmBtn.style.background = buttonColor;
                 showModal();
             });
         });
     }
 
-    // Confirm button clicks
+    // Soft delete (expenses page)
+    setupAction('.delete-link', 
+        'Move this expense to trash? You can restore it later from the Trash page.',
+        'Move to Trash',
+        'linear-gradient(135deg, #f59e0b, #d97706)'
+    );
+
+    // Restore (trash page)
+    setupAction('.restore-link',
+        'Restore this expense? It will reappear in your main list.',
+        'Restore',
+        'linear-gradient(135deg, #10b981, #059669)'
+    );
+
+    // Hard delete / permanent delete (trash page)
+    setupAction('.permanent-delete-link',
+        '⚠️ Permanently delete this expense? This action cannot be undone.',
+        'Permanently Delete',
+        'linear-gradient(135deg, #ef4444, #dc2626)'
+    );
+
     if (confirmBtn) {
         confirmBtn.addEventListener('click', function() {
-            if (currentDeleteUrl) {
-                window.location.href = currentDeleteUrl;
-            }
+            if (currentUrl) window.location.href = currentUrl;
             hideModal();
         });
     }
 
-    // Cancel button
     if (cancelBtn) {
         cancelBtn.addEventListener('click', hideModal);
     }
 
-    // Clicking outside the modal (on the overlay) closes it
     if (modal) {
         modal.addEventListener('click', function(e) {
-            if (e.target === modal) {
-                hideModal();
-            }
+            if (e.target === modal) hideModal();
         });
     }
-
-    initDeleteLinks();
 });

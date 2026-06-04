@@ -10,7 +10,8 @@ class Expense {
     public $isRecurring;
     public $studentId;
     public $notes;
-    public $categoryName; // extra property for JOIN result
+    public $categoryName;
+    public $deletedAt;
 
     public function __construct($data = null) {
         if ($data) {
@@ -21,64 +22,60 @@ class Expense {
             $this->isRecurring = $data['IsRecurring'] ?? 0;
             $this->studentId = $data['StudentID'] ?? null;
             $this->notes = $data['Notes'] ?? null;
+            $this->deletedAt = $data['deleted_at'] ?? null;
         }
     }
 
-    // Save (insert or update)
-    public function save() {
+    public function softDelete() {
         global $pdo;
-        if ($this->expenseId) {
-            $sql = "UPDATE tblExpense 
-                    SET Amount = ?, CategoryID = ?, ExpenseDate = ?, IsRecurring = ?, Notes = ? 
-                    WHERE ExpenseID = ?";
-            $stmt = $pdo->prepare($sql);
-            return $stmt->execute([
-                $this->amount,
-                $this->categoryId,
-                $this->expenseDate,
-                $this->isRecurring,
-                $this->notes,
-                $this->expenseId
-            ]);
-        } else {
-            $sql = "INSERT INTO tblExpense (Amount, CategoryID, ExpenseDate, IsRecurring, StudentID, Notes) 
-                    VALUES (?, ?, ?, ?, ?, ?)";
-            $stmt = $pdo->prepare($sql);
-            return $stmt->execute([
-                $this->amount,
-                $this->categoryId,
-                $this->expenseDate,
-                $this->isRecurring,
-                $this->studentId,
-                $this->notes
-            ]);
-        }
+        if (!$this->expenseId) return false;
+        $stmt = $pdo->prepare("UPDATE tblExpense SET deleted_at = NOW() WHERE ExpenseID = ?");
+        return $stmt->execute([$this->expenseId]);
     }
 
-    // Delete this expense
-    public function delete() {
+    public function restore() {
+        global $pdo;
+        if (!$this->expenseId) return false;
+        $stmt = $pdo->prepare("UPDATE tblExpense SET deleted_at = NULL WHERE ExpenseID = ?");
+        return $stmt->execute([$this->expenseId]);
+    }
+
+    public function hardDelete() {
         global $pdo;
         if (!$this->expenseId) return false;
         $stmt = $pdo->prepare("DELETE FROM tblExpense WHERE ExpenseID = ?");
         return $stmt->execute([$this->expenseId]);
     }
 
-    // Find one expense by ID
-    public static function find($id) {
+    public function save() {
         global $pdo;
-        $stmt = $pdo->prepare("SELECT * FROM tblExpense WHERE ExpenseID = ?");
+        if ($this->expenseId) {
+            $sql = "UPDATE tblExpense SET Amount = ?, CategoryID = ?, ExpenseDate = ?, IsRecurring = ?, Notes = ? WHERE ExpenseID = ?";
+            $stmt = $pdo->prepare($sql);
+            return $stmt->execute([$this->amount, $this->categoryId, $this->expenseDate, $this->isRecurring, $this->notes, $this->expenseId]);
+        } else {
+            $sql = "INSERT INTO tblExpense (Amount, CategoryID, ExpenseDate, IsRecurring, StudentID, Notes) VALUES (?, ?, ?, ?, ?, ?)";
+            $stmt = $pdo->prepare($sql);
+            return $stmt->execute([$this->amount, $this->categoryId, $this->expenseDate, $this->isRecurring, $this->studentId, $this->notes]);
+        }
+    }
+
+    public static function find($id, $withTrashed = false) {
+        global $pdo;
+        $sql = "SELECT * FROM tblExpense WHERE ExpenseID = ?";
+        if (!$withTrashed) $sql .= " AND deleted_at IS NULL";
+        $stmt = $pdo->prepare($sql);
         $stmt->execute([$id]);
         $data = $stmt->fetch(PDO::FETCH_ASSOC);
         return $data ? new Expense($data) : null;
     }
 
-    // Get all expenses for a student, with category name, filter, search
-    public static function all($studentId, $categoryFilter = null, $search = null) {
+    public static function all($studentId, $categoryFilter = null, $search = null, $withTrashed = false) {
         global $pdo;
-        $sql = "SELECT e.*, c.CategoryName 
-                FROM tblExpense e 
+        $sql = "SELECT e.*, c.CategoryName FROM tblExpense e 
                 INNER JOIN tblCategory c ON e.CategoryID = c.CategoryID 
                 WHERE e.StudentID = ?";
+        if (!$withTrashed) $sql .= " AND e.deleted_at IS NULL";
         $params = [$studentId];
         if ($categoryFilter) {
             $sql .= " AND e.CategoryID = ?";

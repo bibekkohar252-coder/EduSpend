@@ -745,4 +745,16 @@ th {
         width: auto;
     }
 }
+.btn-restore {
+    background: linear-gradient(135deg, #10b981, #059669) !important;
+}
+.btn-restore:hover {
+    background: linear-gradient(135deg, #059669, #047857) !important;
+}
 
+.btn-warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+}
+.btn-warning:hover {
+    background: linear-gradient(135deg, #d97706, #b45309) !important;
+}

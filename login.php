@@ -8,6 +8,7 @@ if (isLoggedIn()) {
 }
 
 $error = '';
+$lockout_error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim($_POST['email']);
     $password = $_POST['password'];
@@ -17,8 +18,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: index.php');
         exit;
     } else {
-        $error = 'Invalid email or password.';
+        // login() already sets $_SESSION['login_error'] if account is locked
+        // otherwise it just returns false, so we set a generic error
+        if (!isset($_SESSION['login_error'])) {
+            $error = 'Invalid email or password.';
+        }
     }
+}
+// capture lockout error from session if present
+if (isset($_SESSION['login_error'])) {
+    $lockout_error = $_SESSION['login_error'];
+    unset($_SESSION['login_error']);
 }
 ?>
 <!DOCTYPE html>
@@ -88,6 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <h2>Welcome back</h2>
         <p>Log in to manage your finances</p>
     </div>
+    <?php if ($lockout_error): ?>
+        <div class="alert alert-error"><?= htmlspecialchars($lockout_error) ?></div>
+    <?php endif; ?>
     <?php if ($error): ?>
         <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
     <?php endif; ?>
